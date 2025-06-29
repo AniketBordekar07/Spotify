@@ -69,10 +69,10 @@ select distinct most_played_on from spotify
 
 --  1) Retrieve the names of all tracks that have more than 1 billion streams.
 select * from spotify
-where stream > 1000000000
+where stream > 1000000000;
 
 -- 2)List all albums along with their respective artists.
-select distinct  album ,artist from spotify
+select distinct  album ,artist from spotify;
 
 -- 3)Get the total number of comments for tracks where licensed = TRUE.
 select sum(comments) as total_comments
@@ -83,7 +83,7 @@ where licensed = 'true'
 select distinct album_type from spotify
 
 select track from spotify
-where album_type = 'single'
+where album_type = 'single';
 
 
 select track from spotify
@@ -94,7 +94,7 @@ where album_type ILIKE 'single'
 select artist, count(track) as total_no_track
 from spotify
 group by 1 
-order by 2 desc
+order by 2 desc;
 
 
 -- 6)Calculate the average danceability of tracks in each album.
@@ -106,19 +106,19 @@ group by 1
 order by 2 desc
 
 
--- Find the top 5 tracks with the highest energy values.
+-- 7)Find the top 5 tracks with the highest energy values.
 select  track,max(energy)
 from spotify
 group by 1 
 order by 2 desc
-limit 5
+limit 5;
 
 SELECT track, artist, energy
 FROM spotify
 ORDER BY energy DESC
 LIMIT 5;
 
--- List all tracks along with their views and likes where official_video = TRUE.
+-- 8)List all tracks along with their views and likes where official_video = TRUE.
 select 
 	track, 
 	sum(views) as total_views ,
@@ -126,18 +126,18 @@ select
 from spotify
 where official_video = 'true' 
 group by 1
-order by 2 desc
+order by 2 desc;
 
--- For each album, calculate the total views of all associated tracks.
+--9) For each album, calculate the total views of all associated tracks.
 select 
 	album ,
 	track, 
 	sum(views) as total_view 
 from  spotify 
 group by 1,2
-order by 3 desc
+order by 3 desc;
 
- -- Retrieve the track names that have been streamed on Spotify more than YouTube.
+ -- 10)Retrieve the track names that have been streamed on Spotify more than YouTube.
 select * from (
 select 
 	track,
@@ -147,8 +147,76 @@ from spotify
 group by 1
 ) as T1
 where streamed_on_spotify > streamed_on_youtube
-	 and streamed_on_youtube <> 0
+	 and streamed_on_youtube <> 0;
 
+--11) Find the top 3 most-viewed tracks for each artist using window functions.
+
+with  artist_ranking 
+as 
+(
+select 
+	artist, 
+	track,
+	sum(views) as total_views,
+	dense_rank() over(partition by artist order by sum(views)desc) as rank
+from spotify 
+group by 1,2
+order by 1,3 DESC
+)
+select * from artist_ranking
+where rank<= 3;
+
+
+-- 12)Write a query to find tracks where the liveness score is above the average.
+select 
+	track,
+	liveness
+from spotify
+where liveness > (select avg(liveness) from spotify); 
+
+
+--13) Use a WITH clause to calculate the difference between the highest and lowest energy values for tracks in each album.
+
+select max(energy),min(energy) from spotify 
+
+with difference_energy
+as
+(
+select  
+	album,
+	-- track,
+	max(energy) as highest_energy,
+	min(energy) as lowest_energy
+from spotify
+group by 1
+)
+select 
+	album,
+	highest_energy -lowest_energy as diff_in_energy
+from difference_energy
+order by 2 desc;
+
+--14)Find tracks where the energy-to-liveness ratio is greater than 1.2.
+SELECT 
+	artist, 
+	track, 
+	energy,
+	liveness,
+    (energy / liveness) AS energy_to_liveness_ratio
+FROM spotify
+WHERE (energy / liveness) > 1.2
+ORDER BY 5 DESC;
+
+--Calculate the cumulative sum of likes for tracks
+--ordered by the number of views, using window functions.
+SELECT 
+    artist,
+    track,
+    views,
+    likes,
+    SUM(likes) OVER (ORDER BY views) AS cumulative_likes
+FROM spotify
+ORDER BY 5 DESC ;
 
 
 
